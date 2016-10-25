@@ -39,13 +39,6 @@ var PACKAGE_DIR = PROJECT_DIR + "package/";
 var BIN_DIR = PROJECT_DIR + "bin/" + configuration + "/";
 var IMAGE_DIR = PROJECT_DIR + "images/";
 
-// Package sources for nuget restore
-var PACKAGE_SOURCE = new string[]
-    {
-        "https://www.nuget.org/api/v2",
-        "https://www.myget.org/F/nunit/api/v2"
-    };
-
 // Test Assemblies
 var EXECUTABLE_FRAMEWORK_TESTS = "nunit.framework.tests.exe";
 var EXECUTABLE_NUNITLITE_TESTS = "nunitlite.tests.exe";
@@ -74,11 +67,6 @@ Task("InitializeBuild")
     .Description("Initializes the build")
     .Does(() =>
     {
-        NuGetRestore(SOLUTION_FILE, new NuGetRestoreSettings()
-        {
-            Source = PACKAGE_SOURCE
-        });
-
         if (isAppveyor)
         {
             var tag = AppVeyor.Environment.Repository.Tag;
