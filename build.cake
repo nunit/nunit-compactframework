@@ -20,25 +20,9 @@ var modifier = "";
 
 var isCompactFrameworkInstalled = FileExists(Environment.GetEnvironmentVariable("windir") + "\\Microsoft.NET\\Framework\\v3.5\\Microsoft.CompactFramework.CSharp.targets");
 
-//Find program files on 32-bit or 64-bit Windows
-var programFiles = Environment.GetEnvironmentVariable("ProgramFiles(x86)") ?? Environment.GetEnvironmentVariable("ProgramFiles");
-var isSilverlightSDKInstalled = FileExists(programFiles  + "\\MSBuild\\Microsoft\\Silverlight\\v5.0\\Microsoft.Silverlight.CSharp.targets");
-
 var isAppveyor = BuildSystem.IsRunningOnAppVeyor;
 var dbgSuffix = configuration == "Debug" ? "-dbg" : "";
 var packageVersion = version + modifier + dbgSuffix;
-
-//////////////////////////////////////////////////////////////////////
-// SUPPORTED FRAMEWORKS
-//////////////////////////////////////////////////////////////////////
-
-var WindowsFrameworks = new string[] {
-    "net-4.5", "net-4.0", "net-3.5", "net-2.0", "portable", "sl-5.0", "netcf-3.5" };
-
-var LinuxFrameworks = new string[] {
-    "net-4.5", "net-4.0", "net-3.5", "net-2.0" };
-
-var AllFrameworks = IsRunningOnWindows() ? WindowsFrameworks : LinuxFrameworks;
 
 //////////////////////////////////////////////////////////////////////
 // DEFINE RUN CONSTANTS
@@ -49,31 +33,13 @@ var PACKAGE_DIR = PROJECT_DIR + "package/";
 var BIN_DIR = PROJECT_DIR + "bin/" + configuration + "/";
 var IMAGE_DIR = PROJECT_DIR + "images/";
 
-var SOLUTION_FILE = IsRunningOnWindows()
-    ? "./nunit.sln"
-    : "./nunit.linux.sln";
-
-// Package sources for nuget restore
-var PACKAGE_SOURCE = new string[]
-    {
-        "https://www.nuget.org/api/v2",
-        "https://www.myget.org/F/nunit/api/v2"
-    };
-
-// Test Runners
-var NUNITLITE_RUNNER = "nunitlite-runner.exe";
-
 // Test Assemblies
-var FRAMEWORK_TESTS = "nunit.framework.tests.dll";
 var EXECUTABLE_FRAMEWORK_TESTS = "nunit.framework.tests.exe";
-var NUNITLITE_TESTS = "nunitlite.tests.dll";
 var EXECUTABLE_NUNITLITE_TESTS = "nunitlite.tests.exe";
 
 // Packages
-var SRC_PACKAGE = PACKAGE_DIR + "NUnit-" + version + modifier + "-src.zip";
-var ZIP_PACKAGE = PACKAGE_DIR + "NUnit-" + packageVersion + ".zip";
-var ZIP_PACKAGE_SL = PACKAGE_DIR + "NUnitSL-" + packageVersion + ".zip";
-var ZIP_PACKAGE_CF = PACKAGE_DIR + "NUnitCF-" + packageVersion + ".zip";
+var SRC_PACKAGE = PACKAGE_DIR + "NUnitCF-" + version + modifier + "-src.zip";
+var ZIP_PACKAGE = PACKAGE_DIR + "NUnitCF-" + packageVersion + ".zip";
 
 //////////////////////////////////////////////////////////////////////
 // CLEAN
@@ -95,11 +61,6 @@ Task("InitializeBuild")
     .Description("Initializes the build")
     .Does(() =>
     {
-        NuGetRestore(SOLUTION_FILE, new NuGetRestoreSettings()
-        {
-            Source = PACKAGE_SOURCE
-        });
-
         if (isAppveyor)
         {
             var tag = AppVeyor.Environment.Repository.Tag;
@@ -145,114 +106,22 @@ Task("InitializeBuild")
 // BUILD FRAMEWORKS
 //////////////////////////////////////////////////////////////////////
 
-Task("Build45")
-    .Description("Builds the .NET 4.5 version of the framework")
-    .Does(() =>
-    {
-        BuildProject("src/NUnitFramework/framework/nunit.framework-4.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite/nunitlite-4.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/mock-assembly/mock-assembly-4.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/testdata/nunit.testdata-4.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/slow-tests/slow-nunit-tests-4.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/tests/nunit.framework.tests-4.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite.tests/nunitlite.tests-4.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite-runner/nunitlite-runner-4.5.csproj", configuration);
-    });
-
-Task("Build40")
-    .Description("Builds the .NET 4.0 version of the framework")
-    .Does(() =>
-    {
-        BuildProject("src/NUnitFramework/framework/nunit.framework-4.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite/nunitlite-4.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/mock-assembly/mock-assembly-4.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/testdata/nunit.testdata-4.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/slow-tests/slow-nunit-tests-4.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/tests/nunit.framework.tests-4.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite.tests/nunitlite.tests-4.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite-runner/nunitlite-runner-4.0.csproj", configuration);
-    });
-
-Task("Build35")
-    .Description("Builds the .NET 3.5 version of the framework")
-    .Does(() =>
-    {
-        BuildProject("src/NUnitFramework/framework/nunit.framework-3.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite/nunitlite-3.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/mock-assembly/mock-assembly-3.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/testdata/nunit.testdata-3.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/slow-tests/slow-nunit-tests-3.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/tests/nunit.framework.tests-3.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite.tests/nunitlite.tests-3.5.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite-runner/nunitlite-runner-3.5.csproj", configuration);
-    });
-
-Task("Build20")
-    .Description("Builds the .NET 2.0 version of the framework")
-    .Does(() =>
-    {
-        BuildProject("src/NUnitFramework/framework/nunit.framework-2.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite/nunitlite-2.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/mock-assembly/mock-assembly-2.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/testdata/nunit.testdata-2.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/slow-tests/slow-nunit-tests-2.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/tests/nunit.framework.tests-2.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite.tests/nunitlite.tests-2.0.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite-runner/nunitlite-runner-2.0.csproj", configuration);
-    });
-
-Task("BuildPortable")
-    .Description("Builds the PCL version of the framework")
-    .WithCriteria(IsRunningOnWindows())
-    .Does(() =>
-    {
-        BuildProject("src/NUnitFramework/framework/nunit.framework-portable.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite/nunitlite-portable.csproj", configuration);
-        BuildProject("src/NUnitFramework/mock-assembly/mock-assembly-portable.csproj", configuration);
-        BuildProject("src/NUnitFramework/testdata/nunit.testdata-portable.csproj", configuration);
-        BuildProject("src/NUnitFramework/tests/nunit.framework.tests-portable.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite.tests/nunitlite.tests-portable.csproj", configuration);
-        BuildProject("src/NUnitFramework/nunitlite-runner/nunitlite-runner-portable.csproj", configuration);
-    });
-
-Task("BuildSL")
-    .Description("Builds the Silverlight version of the framework")
-    .WithCriteria(IsRunningOnWindows())
-    .Does(() =>
-    {
-        if(isSilverlightSDKInstalled)
-        {
-            BuildProjectSL("src/NUnitFramework/framework/nunit.framework-sl-5.0.csproj", configuration);
-            BuildProjectSL("src/NUnitFramework/nunitlite/nunitlite-sl-5.0.csproj", configuration);
-            BuildProjectSL("src/NUnitFramework/mock-assembly/mock-assembly-sl-5.0.csproj", configuration);
-            BuildProjectSL("src/NUnitFramework/testdata/nunit.testdata-sl-5.0.csproj", configuration);
-            BuildProjectSL("src/NUnitFramework/tests/nunit.framework.tests-sl-5.0.csproj", configuration);
-            BuildProjectSL("src/NUnitFramework/nunitlite.tests/nunitlite.tests-sl-5.0.csproj", configuration);
-            BuildProjectSL("src/NUnitFramework/nunitlite-runner/nunitlite-runner-sl-5.0.csproj", configuration);
-        }
-        else
-        {
-            Warning("Silverlight build skipped because files were not present.");
-            if(isAppveyor)
-                throw new Exception("Running Build on Appveyor, but Silverlight not found.");
-        }
-    });
-
-Task("BuildCF")
-    .Description("Builds the CF 3.5 version of the framework")
+Task("Build")
+    .Description("Builds the framework")
+    .IsDependentOn("InitializeBuild")
     .WithCriteria(IsRunningOnWindows())
     .Does(() =>
     {
         if(isCompactFrameworkInstalled)
         {
-            BuildProjectCF("src/NUnitFramework/framework/nunit.framework-netcf-3.5.csproj", configuration);
-            BuildProjectCF("src/NUnitFramework/mock-assembly/mock-assembly-netcf-3.5.csproj", configuration);
-            BuildProjectCF("src/NUnitFramework/testdata/nunit.testdata-netcf-3.5.csproj", configuration);
-            BuildProjectCF("src/NUnitFramework/tests/nunit.framework.tests-netcf-3.5.csproj", configuration);
-            BuildProjectCF("src/NUnitFramework/slow-tests/slow-nunit-tests-netcf-3.5.csproj", configuration);
-            BuildProjectCF("src/NUnitFramework/nunitlite/nunitlite-netcf-3.5.csproj", configuration);
-            BuildProjectCF("src/NUnitFramework/nunitlite.tests/nunitlite.tests-netcf-3.5.csproj", configuration);
-            BuildProjectCF("src/NUnitFramework/nunitlite-runner/nunitlite-runner-netcf-3.5.csproj", configuration);
+            BuildProject("src/NUnitFramework/framework/nunit.framework-netcf-3.5.csproj", configuration);
+            BuildProject("src/NUnitFramework/mock-assembly/mock-assembly-netcf-3.5.csproj", configuration);
+            BuildProject("src/NUnitFramework/testdata/nunit.testdata-netcf-3.5.csproj", configuration);
+            BuildProject("src/NUnitFramework/tests/nunit.framework.tests-netcf-3.5.csproj", configuration);
+            BuildProject("src/NUnitFramework/slow-tests/slow-nunit-tests-netcf-3.5.csproj", configuration);
+            BuildProject("src/NUnitFramework/nunitlite/nunitlite-netcf-3.5.csproj", configuration);
+            BuildProject("src/NUnitFramework/nunitlite.tests/nunitlite.tests-netcf-3.5.csproj", configuration);
+            BuildProject("src/NUnitFramework/nunitlite-runner/nunitlite-runner-netcf-3.5.csproj", configuration);
         }
         else
         {
@@ -274,91 +143,10 @@ Task("CheckForError")
 // TEST FRAMEWORK
 //////////////////////////////////////////////////////////////////////
 
-Task("Test45")
-    .Description("Tests the .NET 4.5 version of the framework")
-    .IsDependentOn("Build45")
-    .OnError(exception => { ErrorDetail.Add(exception.Message); })
-    .Does(() =>
-    {
-        var runtime = "net-4.5";
-        var dir = BIN_DIR + runtime + "/";
-        RunTest(dir + NUNITLITE_RUNNER, dir, FRAMEWORK_TESTS, runtime, ref ErrorDetail);
-        RunTest(dir + EXECUTABLE_NUNITLITE_TESTS, dir, runtime, ref ErrorDetail);
-    });
-
-Task("Test40")
-    .Description("Tests the .NET 4.0 version of the framework")
-    .IsDependentOn("Build40")
-    .OnError(exception => { ErrorDetail.Add(exception.Message); })
-    .Does(() =>
-    {
-        var runtime = "net-4.0";
-        var dir = BIN_DIR + runtime + "/";
-        RunTest(dir + NUNITLITE_RUNNER, dir, FRAMEWORK_TESTS, runtime, ref ErrorDetail);
-        RunTest(dir + EXECUTABLE_NUNITLITE_TESTS, dir, runtime, ref ErrorDetail);
-    });
-
-Task("Test35")
-    .Description("Tests the .NET 3.5 version of the framework")
-    .IsDependentOn("Build35")
-    .OnError(exception => { ErrorDetail.Add(exception.Message); })
-    .Does(() =>
-    {
-        var runtime = "net-3.5";
-        var dir = BIN_DIR + runtime + "/";
-        RunTest(dir + NUNITLITE_RUNNER, dir, FRAMEWORK_TESTS, runtime, ref ErrorDetail);
-        RunTest(dir + EXECUTABLE_NUNITLITE_TESTS, dir, runtime, ref ErrorDetail);
-    });
-
-Task("Test20")
-    .Description("Tests the .NET 2.0 version of the framework")
-    .IsDependentOn("Build20")
-    .OnError(exception => { ErrorDetail.Add(exception.Message); })
-    .Does(() =>
-    {
-        var runtime = "net-2.0";
-        var dir = BIN_DIR + runtime + "/";
-        RunTest(dir + NUNITLITE_RUNNER, dir, FRAMEWORK_TESTS, runtime, ref ErrorDetail);
-        RunTest(dir + EXECUTABLE_NUNITLITE_TESTS, dir, runtime, ref ErrorDetail);
-    });
-
-Task("TestPortable")
-    .Description("Tests the PCL version of the framework")
+Task("Test")
+    .Description("Builds and tests the framework")
+    .IsDependentOn("Build")
     .WithCriteria(IsRunningOnWindows())
-    .IsDependentOn("BuildPortable")
-    .OnError(exception => { ErrorDetail.Add(exception.Message); })
-    .Does(() =>
-    {
-        var runtime = "portable";
-        var dir = BIN_DIR + runtime + "/";
-        RunTest(dir + NUNITLITE_RUNNER, dir, FRAMEWORK_TESTS, runtime, ref ErrorDetail);
-        RunTest(dir + EXECUTABLE_NUNITLITE_TESTS, dir, runtime, ref ErrorDetail);
-    });
-
-Task("TestSL")
-    .Description("Tests the Silverlight version of the framework")
-    .WithCriteria(IsRunningOnWindows())
-    .IsDependentOn("BuildSL")
-    .OnError(exception => { ErrorDetail.Add(exception.Message); })
-    .Does(() =>
-    {
-        if(isSilverlightSDKInstalled)
-        {
-            var runtime = "sl-5.0";
-            var dir = BIN_DIR + runtime + "/";
-            RunTest(dir + NUNITLITE_RUNNER, dir, FRAMEWORK_TESTS, runtime, ref ErrorDetail);
-            RunTest(dir + NUNITLITE_RUNNER, dir, NUNITLITE_TESTS, runtime, ref ErrorDetail);
-        }
-        else
-        {
-            Warning("Silverlight tests skipped because files were not present.");
-        }
-    });
-
-Task("TestCF")
-    .Description("Tests the CF 3.5 version of the framework")
-    .WithCriteria(IsRunningOnWindows())
-    .IsDependentOn("BuildCF")
     .OnError(exception => { ErrorDetail.Add(exception.Message); })
     .Does(() =>
     {
@@ -386,33 +174,17 @@ var RootFiles = new FilePath[]
     "CHANGES.txt"
 };
 
-// Not all of these are present in every framework
-// The Microsoft and System assemblies are part of the BCL
-// used by the .NET 4.0 framework. 4.0 tests will not run without them.
-// NUnit.System.Linq is only present for the .NET 2.0 build.
 var FrameworkFiles = new FilePath[]
 {
-    "AppManifest.xaml",
-    "mock-assembly.dll",
     "mock-assembly.exe",
     "nunit.framework.dll",
     "nunit.framework.xml",
-    "NUnit.System.Linq.dll",
-    "nunit.framework.tests.dll",
-    "nunit.framework.tests.xap",
-    "nunit.framework.tests_TestPage.html",
+    "nunit.framework.tests.exe",
     "nunit.testdata.dll",
     "nunitlite.dll",
     "nunitlite.tests.exe",
-    "nunitlite.tests.dll",
     "slow-nunit-tests.dll",
-    "nunitlite-runner.exe",
-    "Microsoft.Threading.Tasks.dll",
-    "Microsoft.Threading.Tasks.Extensions.Desktop.dll",
-    "Microsoft.Threading.Tasks.Extensions.dll",
-    "System.IO.dll",
-    "System.Runtime.dll",
-    "System.Threading.Tasks.dll"
+    "nunitlite-runner.exe"
 };
 
 Task("PackageSource")
@@ -437,84 +209,21 @@ Task("CreateImage")
         CreateDirectory(imageBinDir);
         Information("Created directory " + imageBinDir);
 
-        foreach (var runtime in AllFrameworks)
+        var runtime = "netcf-3.5";
+        var targetDir = imageBinDir + Directory(runtime);
+        var sourceDir = BIN_DIR + Directory(runtime);
+        CreateDirectory(targetDir);
+        foreach (FilePath file in FrameworkFiles)
         {
-            var targetDir = imageBinDir + Directory(runtime);
-            var sourceDir = BIN_DIR + Directory(runtime);
-            CreateDirectory(targetDir);
-            foreach (FilePath file in FrameworkFiles)
-            {
-                var sourcePath = sourceDir + "/" + file;
-                if (FileExists(sourcePath))
-                    CopyFileToDirectory(sourcePath, targetDir);
-            }
+            var sourcePath = sourceDir + "/" + file;
+            if (FileExists(sourcePath))
+                CopyFileToDirectory(sourcePath, targetDir);
         }
     });
 
-Task("PackageFramework")
-    .Description("Creates NuGet packages of the framework")
-    .IsDependentOn("CreateImage")
-    .Does(() =>
-    {
-        var currentImageDir = IMAGE_DIR + "NUnit-" + packageVersion + "/";
-
-        CreateDirectory(PACKAGE_DIR);
-
-        NuGetPack("nuget/framework/nunit.nuspec", new NuGetPackSettings()
-        {
-            Version = packageVersion,
-            BasePath = currentImageDir,
-            OutputDirectory = PACKAGE_DIR
-        });
-
-        NuGetPack("nuget/framework/nunitSL.nuspec", new NuGetPackSettings()
-        {
-            Version = packageVersion,
-            BasePath = currentImageDir,
-            OutputDirectory = PACKAGE_DIR
-        });
-
-        NuGetPack("nuget/nunitlite/nunitlite.nuspec", new NuGetPackSettings()
-        {
-            Version = packageVersion,
-            BasePath = currentImageDir,
-            OutputDirectory = PACKAGE_DIR
-        });
-
-        NuGetPack("nuget/nunitlite/nunitliteSL.nuspec", new NuGetPackSettings()
-        {
-            Version = packageVersion,
-            BasePath = currentImageDir,
-            OutputDirectory = PACKAGE_DIR
-        });
-    });
-
-Task("PackageZip")
-    .Description("Creates a ZIP file of the framework")
-    .IsDependentOn("CreateImage")
-    .Does(() =>
-    {
-        CreateDirectory(PACKAGE_DIR);
-
-        var currentImageDir = IMAGE_DIR + "NUnit-" + packageVersion + "/";
-
-        var zipFiles =
-            GetFiles(currentImageDir + "*.*") +
-            GetFiles(currentImageDir + "bin/net-2.0/*.*") +
-            GetFiles(currentImageDir + "bin/net-3.5/*.*") +
-            GetFiles(currentImageDir + "bin/net-4.0/*.*") +
-            GetFiles(currentImageDir + "bin/net-4.5/*.*") +
-            GetFiles(currentImageDir + "bin/portable/*.*");
-        Zip(currentImageDir, File(ZIP_PACKAGE), zipFiles);
-
-        zipFiles =
-            GetFiles(currentImageDir + "*.*") +
-            GetFiles(currentImageDir + "bin/sl-5.0/*.*");
-        Zip(currentImageDir, File(ZIP_PACKAGE_SL), zipFiles);
-    });
-
-Task("PackageCF")
-    .Description("Packages the CF 3.5 version of the framework")
+Task("Package")
+    .Description("Packages the framework")
+    .IsDependentOn("CheckForError")
     .IsDependentOn("CreateImage")
     .Does(() =>
     {
@@ -526,7 +235,7 @@ Task("PackageCF")
             GetFiles(currentImageDir + "*.*") +
             GetFiles(currentImageDir + "bin/netcf-3.5/*.*");
 
-        Zip(currentImageDir, File(ZIP_PACKAGE_CF), zipFiles);
+        Zip(currentImageDir, File(ZIP_PACKAGE), zipFiles);
 
         NuGetPack("nuget/framework/nunitCF.nuspec", new NuGetPackSettings()
         {
@@ -597,31 +306,12 @@ void CheckForError(ref List<string> errorDetail)
 
 void BuildProject(string projectPath, string configuration)
 {
-    DotNetBuild(projectPath, settings =>
-        settings.SetConfiguration(configuration)
-        .SetVerbosity(Verbosity.Minimal)
-        .WithTarget("Build")
-        .WithProperty("NodeReuse", "false"));
-}
-
-void BuildProjectCF(string projectPath, string configuration)
-{
-    BuildProjectx86(projectPath, configuration, MSBuildToolVersion.VS2008);
-}
-
-void BuildProjectSL(string projectPath, string configuration)
-{
-    BuildProjectx86(projectPath, configuration, MSBuildToolVersion.Default);
-}
-
-void BuildProjectx86(string projectPath, string configuration, MSBuildToolVersion toolVersion)
-{
     if(!IsRunningOnWindows()) return;
 
     MSBuild(projectPath, new MSBuildSettings()
                             .SetConfiguration(configuration)
                             .SetMSBuildPlatform(MSBuildPlatform.x86)
-                            .UseToolVersion(toolVersion)
+                            .UseToolVersion(MSBuildToolVersion.VS2008)
                             .SetVerbosity(Verbosity.Minimal)
                             .SetNodeReuse(false));
 }
@@ -632,16 +322,10 @@ void BuildProjectx86(string projectPath, string configuration, MSBuildToolVersio
 
 void RunTest(FilePath exePath, DirectoryPath workingDir, string framework, ref List<string> errorDetail)
 {
-    RunTest(exePath, workingDir, null, framework, ref errorDetail);
-}
-
-void RunTest(FilePath exePath, DirectoryPath workingDir, string arguments, string framework, ref List<string> errorDetail)
-{
     int rc = StartProcess(
         MakeAbsolute(exePath),
         new ProcessSettings()
         {
-            Arguments = arguments,
             WorkingDirectory = workingDir
         });
 
@@ -656,40 +340,9 @@ void RunTest(FilePath exePath, DirectoryPath workingDir, string arguments, strin
 //////////////////////////////////////////////////////////////////////
 
 Task("Rebuild")
-    .Description("Rebuilds all versions of the framework")
+    .Description("Rebuilds the framework")
     .IsDependentOn("Clean")
     .IsDependentOn("Build");
-
-Task("Build")
-    .Description("Builds all versions of the framework")
-    .IsDependentOn("InitializeBuild")
-    .IsDependentOn("Build45")
-    .IsDependentOn("Build40")
-    .IsDependentOn("Build35")
-    .IsDependentOn("Build20")
-// NOTE: The following tasks use Criteria and will be skipped on Linux
-    .IsDependentOn("BuildPortable")
-    .IsDependentOn("BuildSL")
-    .IsDependentOn("BuildCF");
-
-Task("Test")
-    .Description("Builds and tests all versions of the framework")
-    .IsDependentOn("Build")
-    .IsDependentOn("Test45")
-    .IsDependentOn("Test40")
-    .IsDependentOn("Test35")
-    .IsDependentOn("Test20")
-// NOTE: The following tasks use Criteria and will be skipped on Linux
-    .IsDependentOn("TestPortable")
-    .IsDependentOn("TestSL")
-    .IsDependentOn("TestCF");
-
-Task("Package")
-    .Description("Packages all versions of the framework")
-    .IsDependentOn("CheckForError")
-    .IsDependentOn("PackageFramework")
-    .IsDependentOn("PackageCF")
-    .IsDependentOn("PackageZip");
 
 Task("Appveyor")
     .Description("Builds, tests and packages on AppVeyor")
@@ -698,13 +351,8 @@ Task("Appveyor")
     .IsDependentOn("Package")
     .IsDependentOn("UploadArtifacts");
 
-Task("Travis")
-    .Description("Builds and tests on Travis")
-    .IsDependentOn("Build")
-    .IsDependentOn("Test");
-
 Task("Default")
-    .Description("Builds all versions of the framework")
+    .Description("Builds the framework")
     .IsDependentOn("Build");
 
 //////////////////////////////////////////////////////////////////////
