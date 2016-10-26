@@ -25,12 +25,6 @@ var dbgSuffix = configuration == "Debug" ? "-dbg" : "";
 var packageVersion = version + modifier + dbgSuffix;
 
 //////////////////////////////////////////////////////////////////////
-// SUPPORTED FRAMEWORKS
-//////////////////////////////////////////////////////////////////////
-
-var AllFrameworks = new string[] { "netcf-3.5" };
-
-//////////////////////////////////////////////////////////////////////
 // DEFINE RUN CONSTANTS
 //////////////////////////////////////////////////////////////////////
 
@@ -112,8 +106,9 @@ Task("InitializeBuild")
 // BUILD FRAMEWORKS
 //////////////////////////////////////////////////////////////////////
 
-Task("BuildCF")
-    .Description("Builds the CF 3.5 version of the framework")
+Task("Build")
+    .Description("Builds the framework")
+    .IsDependentOn("InitializeBuild")
     .WithCriteria(IsRunningOnWindows())
     .Does(() =>
     {
@@ -148,10 +143,10 @@ Task("CheckForError")
 // TEST FRAMEWORK
 //////////////////////////////////////////////////////////////////////
 
-Task("TestCF")
-    .Description("Tests the CF 3.5 version of the framework")
+Task("Test")
+    .Description("Builds and tests the framework")
+    .IsDependentOn("Build")
     .WithCriteria(IsRunningOnWindows())
-    .IsDependentOn("BuildCF")
     .OnError(exception => { ErrorDetail.Add(exception.Message); })
     .Does(() =>
     {
@@ -179,33 +174,17 @@ var RootFiles = new FilePath[]
     "CHANGES.txt"
 };
 
-// Not all of these are present in every framework
-// The Microsoft and System assemblies are part of the BCL
-// used by the .NET 4.0 framework. 4.0 tests will not run without them.
-// NUnit.System.Linq is only present for the .NET 2.0 build.
 var FrameworkFiles = new FilePath[]
 {
-    "AppManifest.xaml",
-    "mock-assembly.dll",
     "mock-assembly.exe",
     "nunit.framework.dll",
     "nunit.framework.xml",
-    "NUnit.System.Linq.dll",
-    "nunit.framework.tests.dll",
-    "nunit.framework.tests.xap",
-    "nunit.framework.tests_TestPage.html",
+    "nunit.framework.tests.exe",
     "nunit.testdata.dll",
     "nunitlite.dll",
     "nunitlite.tests.exe",
-    "nunitlite.tests.dll",
     "slow-nunit-tests.dll",
-    "nunitlite-runner.exe",
-    "Microsoft.Threading.Tasks.dll",
-    "Microsoft.Threading.Tasks.Extensions.Desktop.dll",
-    "Microsoft.Threading.Tasks.Extensions.dll",
-    "System.IO.dll",
-    "System.Runtime.dll",
-    "System.Threading.Tasks.dll"
+    "nunitlite-runner.exe"
 };
 
 Task("PackageSource")
@@ -230,22 +209,21 @@ Task("CreateImage")
         CreateDirectory(imageBinDir);
         Information("Created directory " + imageBinDir);
 
-        foreach (var runtime in AllFrameworks)
+        var runtime = "netcf-3.5";
+        var targetDir = imageBinDir + Directory(runtime);
+        var sourceDir = BIN_DIR + Directory(runtime);
+        CreateDirectory(targetDir);
+        foreach (FilePath file in FrameworkFiles)
         {
-            var targetDir = imageBinDir + Directory(runtime);
-            var sourceDir = BIN_DIR + Directory(runtime);
-            CreateDirectory(targetDir);
-            foreach (FilePath file in FrameworkFiles)
-            {
-                var sourcePath = sourceDir + "/" + file;
-                if (FileExists(sourcePath))
-                    CopyFileToDirectory(sourcePath, targetDir);
-            }
+            var sourcePath = sourceDir + "/" + file;
+            if (FileExists(sourcePath))
+                CopyFileToDirectory(sourcePath, targetDir);
         }
     });
 
-Task("PackageCF")
-    .Description("Packages the CF 3.5 version of the framework")
+Task("Package")
+    .Description("Packages the framework")
+    .IsDependentOn("CheckForError")
     .IsDependentOn("CreateImage")
     .Does(() =>
     {
@@ -365,21 +343,6 @@ Task("Rebuild")
     .Description("Rebuilds the framework")
     .IsDependentOn("Clean")
     .IsDependentOn("Build");
-
-Task("Build")
-    .Description("Builds the framework")
-    .IsDependentOn("InitializeBuild")
-    .IsDependentOn("BuildCF");
-
-Task("Test")
-    .Description("Builds and tests the framework")
-    .IsDependentOn("Build")
-    .IsDependentOn("TestCF");
-
-Task("Package")
-    .Description("Packages the framework")
-    .IsDependentOn("CheckForError")
-    .IsDependentOn("PackageCF");
 
 Task("Appveyor")
     .Description("Builds, tests and packages on AppVeyor")
